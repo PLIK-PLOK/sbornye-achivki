@@ -5,110 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сборные Ачивки</title>
   
-  <!-- Библиотека сканирования QR в браузере (работает без VK) -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Подключаем VK Bridge (официальная библиотека) -->
+  <script src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js"></script>
   
   <style>
     body {
       margin: 0;
-      font-family: system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f0f8f0;
-      color: #222;
-      min-height: 100vh;
+      color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
-      padding: 20px;
+      justify-content: center;
+      min-height: 100vh;
     }
-    h1 { color: #4CAF50; margin: 20px 0 10px; }
-    p { font-size: 1.1rem; color: #555; margin-bottom: 20px; }
-    button {
+    h1 { color: #4CAF50; text-align: center; }
+    .button {
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 14px 36px;
-      font-size: 1.1rem;
-      border-radius: 10px;
-      cursor: pointer;
-      margin: 10px;
-      box-shadow: 0 3px 10px rgba(76,175,80,0.3);
-    }
-    button:hover { background: #43a047; }
-    #reader {
-      width: 100%;
-      max-width: 420px;
-      margin: 20px auto;
-      border: 3px solid #4CAF50;
+      padding: 18px 40px;
+      font-size: 20px;
       border-radius: 12px;
-      overflow: hidden;
-    }
-    #status { font-size: 1.2rem; margin: 15px; color: #4CAF50; font-weight: 600; }
-    #result {
+      cursor: pointer;
       margin: 20px;
-      padding: 15px;
-      background: #e8f5e9;
-      border-radius: 10px;
-      font-size: 1rem;
-      white-space: pre-wrap;
-      word-break: break-all;
+      box-shadow: 0 4px 10px rgba(76,175,80,0.4);
+      transition: all 0.2s;
     }
+    .button:hover { background: #45a049; transform: scale(1.05); }
+    #status { font-size: 18px; color: #555; margin: 20px; text-align: center; }
   </style>
 </head>
 <body>
 
   <h1>Сборные Ачивки</h1>
-  <p>Сканируй QR-коды на сборах — получай значки!</p>
+  <p>Собирай значки на встречах!</p>
 
-  <button id="startScan">Запустить сканер</button>
-  <button id="stopScan" style="display:none;">Остановить сканер</button>
+  <button class="button" id="scanButton" disabled>
+    Сканировать QR на сборе
+  </button>
 
-  <div id="reader"></div>
-
-  <div id="status">Готов к работе</div>
-  <div id="result">Результат появится здесь</div>
+  <div id="status">Загрузка приложения...</div>
 
   <script>
-    const html5QrCode = new Html5Qrcode("reader");
-    let isScanning = false;
+    // Инициализация VK Bridge — это обязательно!
+    vkBridge.send('VKWebAppInit')
+      .then(() => {
+        document.getElementById('status').innerText = 'Приложение готово!';
+        document.getElementById('scanButton').disabled = false;
 
-    document.getElementById('startScan').onclick = async () => {
-      if (isScanning) return;
+        // Пока просто тестовая кнопка
+        document.getElementById('scanButton').onclick = () => {
+          alert('Сканер QR пока в тесте. Скоро будет открывать камеру ВК!');
+          // Позже здесь будет: vkBridge.send('VKWebAppOpenCodeReader')
+        };
 
-      try {
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 12, qrbox: { width: 280, height: 280 } },
-          (text) => {
-            document.getElementById('result').innerText = `Отсканировано!\n${text}`;
-            document.getElementById('status').innerText = 'Успех!';
-            html5QrCode.stop();
-            isScanning = false;
-            toggleButtons();
-          },
-          () => {} // игнорируем шумы
-        );
-        isScanning = true;
-        toggleButtons();
-        document.getElementById('status').innerText = 'Сканирую... Наведи на QR';
-      } catch (err) {
-        document.getElementById('status').innerText = 'Не удалось запустить камеру: ' + err;
-        document.getElementById('status').style.color = 'red';
-      }
-    };
-
-    document.getElementById('stopScan').onclick = () => {
-      html5QrCode.stop().then(() => {
-        isScanning = false;
-        toggleButtons();
-        document.getElementById('status').innerText = 'Сканер остановлен';
+        console.log('VK Bridge успешно инициализирован');
+      })
+      .catch(error => {
+        document.getElementById('status').innerText = 'Ошибка инициализации: ' + error.message;
+        console.error(error);
       });
-    };
-
-    function toggleButtons() {
-      document.getElementById('startScan').style.display = isScanning ? 'none' : 'inline-block';
-      document.getElementById('stopScan').style.display = isScanning ? 'inline-block' : 'none';
-    }
   </script>
 
 </body>
