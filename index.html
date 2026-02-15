@@ -4,11 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сборные Ачивки</title>
+  
+  <!-- Подключаем VK Bridge (официальная библиотека) -->
+  <script src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js"></script>
+  
   <style>
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f0f8f0; /* светло-салатовый фон */
+      background: #f0f8f0;
       color: #333;
       display: flex;
       flex-direction: column;
@@ -16,10 +20,7 @@
       justify-content: center;
       min-height: 100vh;
     }
-    h1 {
-      color: #4CAF50; /* яркий салатовый */
-      text-align: center;
-    }
+    h1 { color: #4CAF50; text-align: center; }
     .button {
       background: #4CAF50;
       color: white;
@@ -32,15 +33,8 @@
       box-shadow: 0 4px 10px rgba(76,175,80,0.4);
       transition: all 0.2s;
     }
-    .button:hover {
-      background: #45a049;
-      transform: scale(1.05);
-    }
-    .achivki {
-      margin-top: 30px;
-      font-size: 18px;
-      color: #555;
-    }
+    .button:hover { background: #45a049; transform: scale(1.05); }
+    #status { font-size: 18px; color: #555; margin: 20px; text-align: center; }
   </style>
 </head>
 <body>
@@ -48,18 +42,31 @@
   <h1>Сборные Ачивки</h1>
   <p>Собирай значки на встречах!</p>
 
-  <button class="button" onclick="alert('Сейчас откроется сканер QR! (пока просто тест)')">
+  <button class="button" id="scanButton" disabled>
     Сканировать QR на сборе
   </button>
 
-  <div class="achivki">
-    Пока ачивок: 0<br>
-    (скоро здесь будет твоя коллекция)
-  </div>
+  <div id="status">Загрузка приложения...</div>
 
   <script>
-    // Пока просто заглушка — позже подключим настоящий сканер из VK
-    console.log("Мини-приложение Сборные Ачивки запущено!");
+    // Инициализация VK Bridge — это обязательно!
+    vkBridge.send('VKWebAppInit')
+      .then(() => {
+        document.getElementById('status').innerText = 'Приложение готово!';
+        document.getElementById('scanButton').disabled = false;
+
+        // Пока просто тестовая кнопка
+        document.getElementById('scanButton').onclick = () => {
+          alert('Сканер QR пока в тесте. Скоро будет открывать камеру ВК!');
+          // Позже здесь будет: vkBridge.send('VKWebAppOpenCodeReader')
+        };
+
+        console.log('VK Bridge успешно инициализирован');
+      })
+      .catch(error => {
+        document.getElementById('status').innerText = 'Ошибка инициализации: ' + error.message;
+        console.error(error);
+      });
   </script>
 
 </body>
