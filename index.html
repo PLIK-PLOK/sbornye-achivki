@@ -5,96 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сборные Ачивки</title>
   
-  <!-- Библиотека для сканирования QR в браузере -->
+  <!-- Библиотека сканирования QR в браузере (работает без VK) -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   
   <style>
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: system-ui, sans-serif;
       background: #f0f8f0;
-      color: #333;
+      color: #222;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
       text-align: center;
       padding: 20px;
     }
-    h1 { color: #4CAF50; margin-bottom: 10px; }
-    p { font-size: 18px; margin: 0 0 20px; color: #555; }
-    .button {
+    h1 { color: #4CAF50; margin: 20px 0 10px; }
+    p { font-size: 1.1rem; color: #555; margin-bottom: 20px; }
+    button {
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 16px 40px;
-      font-size: 18px;
-      border-radius: 12px;
+      padding: 14px 36px;
+      font-size: 1.1rem;
+      border-radius: 10px;
       cursor: pointer;
-      margin: 15px;
-      box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+      margin: 10px;
+      box-shadow: 0 3px 10px rgba(76,175,80,0.3);
     }
-    .button:hover { background: #45a049; }
-    #reader { width: 100%; max-width: 500px; margin: 20px auto; border: 2px solid #4CAF50; border-radius: 10px; overflow: hidden; }
-    #status { font-size: 18px; margin: 20px; color: #4CAF50; font-weight: bold; }
-    #result { margin: 20px; padding: 15px; background: rgba(76,175,80,0.15); border-radius: 10px; font-size: 16px; white-space: pre-wrap; }
+    button:hover { background: #43a047; }
+    #reader {
+      width: 100%;
+      max-width: 420px;
+      margin: 20px auto;
+      border: 3px solid #4CAF50;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    #status { font-size: 1.2rem; margin: 15px; color: #4CAF50; font-weight: 600; }
+    #result {
+      margin: 20px;
+      padding: 15px;
+      background: #e8f5e9;
+      border-radius: 10px;
+      font-size: 1rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
 
   <h1>Сборные Ачивки</h1>
-  <p>Сканируй QR-коды на сборах!</p>
+  <p>Сканируй QR-коды на сборах — получай значки!</p>
 
-  <button class="button" id="startScan">Начать сканирование</button>
-  <button class="button" id="stopScan" style="display:none;">Остановить</button>
+  <button id="startScan">Запустить сканер</button>
+  <button id="stopScan" style="display:none;">Остановить сканер</button>
 
   <div id="reader"></div>
 
-  <div id="status">Готов к сканированию</div>
-  <div id="result"></div>
+  <div id="status">Готов к работе</div>
+  <div id="result">Результат появится здесь</div>
 
   <script>
     const html5QrCode = new Html5Qrcode("reader");
-    let scanning = false;
+    let isScanning = false;
 
-    document.getElementById('startScan').onclick = () => {
-      if (scanning) return;
+    document.getElementById('startScan').onclick = async () => {
+      if (isScanning) return;
 
-      html5QrCode.start(
-        { facingMode: "environment" },  // задняя камера
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          document.getElementById('result').innerText = 'Успех! QR-код:\n' + decodedText;
-          document.getElementById('status').innerText = 'Отсканировано!';
-          // Здесь можно добавить логику выдачи ачивки
-          html5QrCode.stop(); // останавливаем после успеха
-          scanning = false;
-          document.getElementById('startScan').style.display = 'block';
-          document.getElementById('stopScan').style.display = 'none';
-        },
-        (errorMessage) => {
-          // тихие ошибки сканирования — не показываем
-        }
-      ).then(() => {
-        scanning = true;
-        document.getElementById('startScan').style.display = 'none';
-        document.getElementById('stopScan').style.display = 'block';
-        document.getElementById('status').innerText = 'Сканирую... Наведи камеру на QR';
-      }).catch(err => {
-        document.getElementById('status').innerText = 'Ошибка запуска камеры: ' + err;
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 12, qrbox: { width: 280, height: 280 } },
+          (text) => {
+            document.getElementById('result').innerText = `Отсканировано!\n${text}`;
+            document.getElementById('status').innerText = 'Успех!';
+            html5QrCode.stop();
+            isScanning = false;
+            toggleButtons();
+          },
+          () => {} // игнорируем шумы
+        );
+        isScanning = true;
+        toggleButtons();
+        document.getElementById('status').innerText = 'Сканирую... Наведи на QR';
+      } catch (err) {
+        document.getElementById('status').innerText = 'Не удалось запустить камеру: ' + err;
         document.getElementById('status').style.color = 'red';
-      });
+      }
     };
 
     document.getElementById('stopScan').onclick = () => {
       html5QrCode.stop().then(() => {
-        scanning = false;
-        document.getElementById('startScan').style.display = 'block';
-        document.getElementById('stopScan').style.display = 'none';
-        document.getElementById('status').innerText = 'Сканирование остановлено';
+        isScanning = false;
+        toggleButtons();
+        document.getElementById('status').innerText = 'Сканер остановлен';
       });
     };
+
+    function toggleButtons() {
+      document.getElementById('startScan').style.display = isScanning ? 'none' : 'inline-block';
+      document.getElementById('stopScan').style.display = isScanning ? 'inline-block' : 'none';
+    }
   </script>
 
 </body>
