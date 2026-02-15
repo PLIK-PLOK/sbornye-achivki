@@ -55,11 +55,25 @@
         document.getElementById('status').innerText = 'Приложение готово!';
         document.getElementById('scanButton').disabled = false;
 
-        // Пока просто тестовая кнопка
         document.getElementById('scanButton').onclick = () => {
-          alert('Сканер QR пока в тесте. Скоро будет открывать камеру ВК!');
-          // Позже здесь будет: vkBridge.send('VKWebAppOpenCodeReader')
-        };
+  vkBridge.send('VKWebAppOpenCodeReader', { camera: 'auto' })  // 'auto' — использует заднюю камеру по умолчанию
+    .then(data => {
+      // data.result — это строка из отсканированного QR-кода
+      const qrText = data.result;
+      alert('Успешно отсканировано!\n\nQR-код содержит:\n' + qrText);
+
+      // Здесь позже будем проверять, является ли это нашим кодом ачивки
+      // Например: если qrText.startsWith('achivka:') → выдать награду
+    })
+    .catch(error => {
+      // Если пользователь закрыл сканер или ошибка
+      if (error.error_code === 'VKWebAppOpenCodeReaderClosed') {
+        alert('Сканер закрыт');
+      } else {
+        alert('Ошибка сканирования: ' + (error.error_message || 'неизвестно'));
+      }
+    });
+};
 
         console.log('VK Bridge успешно инициализирован');
       })
@@ -71,3 +85,4 @@
 
 </body>
 </html>
+
