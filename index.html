@@ -5,84 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сборные Ачивки</title>
   
-  <!-- Подключаем VK Bridge (официальная библиотека) -->
+  <!-- Официальная библиотека VK Bridge -->
   <script src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js"></script>
   
   <style>
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f0f8f0;
+      background: #f0f8f0; /* светло-салатовый фон */
       color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      text-align: center;
     }
-    h1 { color: #4CAF50; text-align: center; }
+    h1 {
+      color: #4CAF50; /* яркий салатовый */
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 18px;
+      margin: 0 20px 30px;
+      color: #555;
+    }
     .button {
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 18px 40px;
+      padding: 18px 50px;
       font-size: 20px;
       border-radius: 12px;
       cursor: pointer;
-      margin: 20px;
-      box-shadow: 0 4px 10px rgba(76,175,80,0.4);
-      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+      transition: all 0.25s;
     }
-    .button:hover { background: #45a049; transform: scale(1.05); }
-    #status { font-size: 18px; color: #555; margin: 20px; text-align: center; }
+    .button:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(76,175,80,0.5);
+    }
+    .button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    #status {
+      font-size: 18px;
+      margin: 30px 20px;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 16px;
+      color: #333;
+      padding: 15px;
+      background: rgba(76,175,80,0.1);
+      border-radius: 10px;
+      max-width: 90%;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
 
   <h1>Сборные Ачивки</h1>
-  <p>Собирай значки на встречах!</p>
+  <p>Собирай значки на встречах — сканируй QR-коды!</p>
 
   <button class="button" id="scanButton" disabled>
     Сканировать QR на сборе
   </button>
 
   <div id="status">Загрузка приложения...</div>
+  <div id="result"></div>
 
   <script>
-    // Инициализация VK Bridge — это обязательно!
+    // Инициализация VK Bridge (обязательно для работы в ВК)
     vkBridge.send('VKWebAppInit')
       .then(() => {
-        document.getElementById('status').innerText = 'Приложение готово!';
+        document.getElementById('status').innerText = 'Готово! Можно сканировать';
         document.getElementById('scanButton').disabled = false;
 
+        // Обработчик кнопки сканирования
         document.getElementById('scanButton').onclick = () => {
-  vkBridge.send('VKWebAppOpenCodeReader', { camera: 'auto' })  // 'auto' — использует заднюю камеру по умолчанию
-    .then(data => {
-      // data.result — это строка из отсканированного QR-кода
-      const qrText = data.result;
-      alert('Успешно отсканировано!\n\nQR-код содержит:\n' + qrText);
-
-      // Здесь позже будем проверять, является ли это нашим кодом ачивки
-      // Например: если qrText.startsWith('achivka:') → выдать награду
-    })
-    .catch(error => {
-      // Если пользователь закрыл сканер или ошибка
-      if (error.error_code === 'VKWebAppOpenCodeReaderClosed') {
-        alert('Сканер закрыт');
-      } else {
-        alert('Ошибка сканирования: ' + (error.error_message || 'неизвестно'));
-      }
-    });
-};
-
-        console.log('VK Bridge успешно инициализирован');
+          vkBridge.send('VKWebAppOpenCodeReader', { camera: 'auto' })
+            .then(data => {
+              if (data && data.result) {
+                const qrText = data.result;
+                document.getElementById('result').innerText = 
+                  'Отсканировано!\n\nСодержимое QR-кода:\n' + qrText;
+                
+                // Здесь в будущем будем проверять код и выдавать ачивку
+                if (qrText.includes('achivka') || qrText.includes('сбор')) {
+                  alert('Класс! Это похоже на наш код — скоро добавим ачивку!');
+                }
+              } else {
+                document.getElementById('result').innerText = 'Ничего не отсканировано';
+              }
+            })
+            .catch(error => {
+              let msg = 'Ошибка сканирования';
+              if (error && error.error_message) {
+                msg += ': ' + error.error_message;
+              }
+              if (error && error.error_code === 'VKWebAppOpenCodeReaderClosed') {
+                msg = 'Сканер закрыт';
+              }
+              document.getElementById('result').innerText = msg;
+            });
+        };
       })
       .catch(error => {
-        document.getElementById('status').innerText = 'Ошибка инициализации: ' + error.message;
-        console.error(error);
+        document.getElementById('status').innerText = 
+          'Ошибка запуска: ' + (error.message || 'неизвестная проблема');
+        document.getElementById('status').style.color = 'red';
       });
   </script>
 
 </body>
 </html>
-
