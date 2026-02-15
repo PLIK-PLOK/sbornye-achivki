@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сборные Ачивки</title>
   
-  <script src="https://unpkg.com/@vkontakte/vk-bridge@2.14.0/dist/browser.min.js"></script>
+  <!-- Библиотека для сканирования QR в браузере -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   
   <style>
     body {
@@ -22,91 +23,78 @@
       padding: 20px;
     }
     h1 { color: #4CAF50; margin-bottom: 10px; }
-    p { font-size: 18px; margin: 0 0 30px; color: #555; }
+    p { font-size: 18px; margin: 0 0 20px; color: #555; }
     .button {
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 18px 50px;
-      font-size: 20px;
+      padding: 16px 40px;
+      font-size: 18px;
       border-radius: 12px;
       cursor: pointer;
+      margin: 15px;
       box-shadow: 0 4px 12px rgba(76,175,80,0.4);
-      transition: all 0.25s;
     }
-    .button:hover { background: #45a049; transform: translateY(-2px); }
-    .button:disabled { background: #aaa; cursor: not-allowed; }
-    #status { font-size: 18px; margin: 20px 0; color: #4CAF50; font-weight: bold; }
-    #result, #debug { 
-      margin: 20px 0; 
-      padding: 15px; 
-      background: rgba(76,175,80,0.1); 
-      border-radius: 10px; 
-      max-width: 90%; 
-      font-size: 16px; 
-      word-break: break-all; 
-    }
-    #debug { background: #ffebee; color: #c62828; font-size: 14px; }
+    .button:hover { background: #45a049; }
+    #reader { width: 100%; max-width: 500px; margin: 20px auto; border: 2px solid #4CAF50; border-radius: 10px; overflow: hidden; }
+    #status { font-size: 18px; margin: 20px; color: #4CAF50; font-weight: bold; }
+    #result { margin: 20px; padding: 15px; background: rgba(76,175,80,0.15); border-radius: 10px; font-size: 16px; white-space: pre-wrap; }
   </style>
 </head>
 <body>
 
   <h1>Сборные Ачивки</h1>
-  <p>Сканируй QR-коды на сборах, чтобы получать ачивки!</p>
+  <p>Сканируй QR-коды на сборах!</p>
 
-  <button class="button" id="scanButton" disabled>
-    Сканировать QR
-  </button>
+  <button class="button" id="startScan">Начать сканирование</button>
+  <button class="button" id="stopScan" style="display:none;">Остановить</button>
 
-  <div id="status">Загрузка...</div>
+  <div id="reader"></div>
+
+  <div id="status">Готов к сканированию</div>
   <div id="result"></div>
-  <div id="debug">Отладка: ждём инициализации</div>
 
   <script>
-    // Инициализация + отладка
-    vkBridge.send('VKWebAppInit')
-      .then(() => {
-        document.getElementById('status').innerText = 'Готово! Нажми кнопку';
-        document.getElementById('scanButton').disabled = false;
-        document.getElementById('debug').innerText = 'Инициализация прошла успешно';
+    const html5QrCode = new Html5Qrcode("reader");
+    let scanning = false;
 
-        document.getElementById('scanButton').onclick = () => {
-          document.getElementById('result').innerText = 'Открываю сканер...';
-          document.getElementById('debug').innerText = 'Вызван VKWebAppOpenCodeReader';
+    document.getElementById('startScan').onclick = () => {
+      if (scanning) return;
 
-          vkBridge.send('VKWebAppOpenCodeReader', { camera: 'auto' })
-            .then(data => {
-              document.getElementById('debug').innerText = 'Сканер вернул успех';
-              if (data && data.result) {
-                document.getElementById('result').innerText = 
-                  'Успех! QR-код:\n' + data.result;
-              } else {
-                document.getElementById('result').innerText = 'Сканер закрыт без результата';
-              }
-            })
-            .catch(error => {
-              document.getElementById('debug').innerText = 'Ошибка в сканере';
-              let msg = 'Ошибка сканирования\n\n';
-              
-              if (error && typeof error === 'object') {
-                msg += 'Детали ошибки:\n';
-                msg += 'error_code: ' + (error.error_code || 'нет') + '\n';
-                msg += 'error_reason: ' + (error.error_reason || 'нет') + '\n';
-                msg += 'error_message: ' + (error.error_message || 'нет') + '\n';
-                msg += 'Полный объект ошибки: ' + JSON.stringify(error, null, 2);
-              } else {
-                msg += 'Неизвестный тип ошибки: ' + String(error);
-              }
-
-              document.getElementById('result').innerText = msg;
-            });
-        };
-      })
-      .catch(error => {
-        document.getElementById('status').innerText = 'Ошибка запуска VK Bridge';
+      html5QrCode.start(
+        { facingMode: "environment" },  // задняя камера
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          document.getElementById('result').innerText = 'Успех! QR-код:\n' + decodedText;
+          document.getElementById('status').innerText = 'Отсканировано!';
+          // Здесь можно добавить логику выдачи ачивки
+          html5QrCode.stop(); // останавливаем после успеха
+          scanning = false;
+          document.getElementById('startScan').style.display = 'block';
+          document.getElementById('stopScan').style.display = 'none';
+        },
+        (errorMessage) => {
+          // тихие ошибки сканирования — не показываем
+        }
+      ).then(() => {
+        scanning = true;
+        document.getElementById('startScan').style.display = 'none';
+        document.getElementById('stopScan').style.display = 'block';
+        document.getElementById('status').innerText = 'Сканирую... Наведи камеру на QR';
+      }).catch(err => {
+        document.getElementById('status').innerText = 'Ошибка запуска камеры: ' + err;
         document.getElementById('status').style.color = 'red';
-        document.getElementById('debug').innerText = 'Ошибка Init: ' + JSON.stringify(error);
       });
+    };
+
+    document.getElementById('stopScan').onclick = () => {
+      html5QrCode.stop().then(() => {
+        scanning = false;
+        document.getElementById('startScan').style.display = 'block';
+        document.getElementById('stopScan').style.display = 'none';
+        document.getElementById('status').innerText = 'Сканирование остановлено';
+      });
+    };
   </script>
 
 </body>
